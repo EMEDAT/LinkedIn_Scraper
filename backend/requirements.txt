@@ -1,0 +1,9 @@
+flask
+flask-cors
+openai
+beautifulsoup4
+requests
+firebase-admin
+python-dotenv
+dnspython
+pytest
