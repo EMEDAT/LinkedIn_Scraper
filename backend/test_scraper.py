@@ -11,6 +11,9 @@ import json
 import os
 
 class TestLinkedInScraper(unittest.TestCase):
+    def setUp(self):
+        # You would need to replace this with valid LinkedIn cookies for testing
+        self.test_cookies = "AQEDATY_pmsFJqblAAABk-x2AbwAAAGUEIKFvE0ASe_ERrDVJkhpxhFK3eNfNdsAnuSzPkIhf6ILhhwc-hRQMwn4r8NY4m_UsewGLOVRnj57OppRPHm_gpjApdieQvRsXFKPXbMyF_Ye3hA8HbONi83j"
     def test_url_builder(self):
         """Test LinkedIn URL builder"""
         print("\nTesting URL builder...")
@@ -49,12 +52,6 @@ class TestLinkedInScraper(unittest.TestCase):
         self.assertFalse(validate_email(invalid_email, verify_dns=False), 
                          "Invalid email format should fail")
         
-        # Skip DNS verification in CI/automated tests
-        # Uncomment below for manual testing with DNS verification
-        # real_email = "test@gmail.com"
-        # print(f"Testing email with DNS verification: {real_email}")
-        # self.assertTrue(validate_email(real_email, verify_dns=True), 
-        #                "Valid email with existing domain should pass DNS verification")
 
     def test_gdpr_compliance(self):
         """Test GDPR compliance transformer"""
@@ -101,12 +98,15 @@ class TestLinkedInScraper(unittest.TestCase):
     def test_comment_scraping(self):
         """Test LinkedIn comment scraping"""
         print("\nTesting comment scraping...")
-        test_url = "https://www.linkedin.com/posts/dthompsondev_its-getting-closer-to-our-next-cohort-our-activity-7274053531517497344-uJUq?utm_source=share&utm_medium=member_desktop"
-        test_cookies = "li_at=AQEDATY_pmsF3usMAAABkm0HZc4AAAGUAGMiu04ABqqCVqQ18A3GpgOGFVgQUZ8oymPDHW1nFXfqwmd6Z9OIo_zxS3a5lo3CZzK-WxDGCUn4aLMv15M3U1LQePXGhJhGdIKOpwMkFK0ITCDOVfGSOUAC"
+        test_url = "https://www.linkedin.com/posts/dthompsondev_yesterday-someone-asked-for-there-to-be-a-activity-7276041809804345344-QYyP?utm_source=share&utm_medium=member_desktop"
         try:
-            comments = scrape_comments_from_post(test_url, test_cookies)
+            comments = scrape_comments_from_post(test_url, self.test_cookies)
             print(f"Scraped {len(comments)} comments")
             self.assertTrue(isinstance(comments, list))
+            if len(comments) > 0:
+                self.assertIn('name', comments[0])
+                self.assertIn('comment', comments[0])
+                self.assertIn('timestamp', comments[0])
         except Exception as e:
             print(f"Note: Comment scraping test failed (this might be expected): {str(e)}")
 

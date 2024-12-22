@@ -11,24 +11,23 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 def process_query(query):
     """
     Interpret natural language queries and convert them into LinkedIn search parameters.
+    Returns a dictionary of search parameters.
     """
     system_prompt = """
-    Convert natural language queries into LinkedIn search parameters. Format the output as a dictionary with these possible keys:
+    Convert natural language queries into LinkedIn search parameters. Return ONLY a JSON object with these keys:
     - keywords: Main search terms
     - title: Job titles or positions
     - company: Company names
     - location: Geographic locations
     - industry: Industry sectors
-    - filters: Additional filters like company size, connections, etc.
     
-    Example:
-    Input: "Find marketing directors in California working at tech startups"
-    Output: {
+    Example Input: "Find marketing directors in California working at tech startups"
+    Example Output: {
         "title": "Marketing Director",
         "location": "California",
         "industry": "Technology",
         "company": "",
-        "filters": "company size: 1-200"
+        "keywords": "marketing director"
     }
     """
 
@@ -39,11 +38,24 @@ def process_query(query):
             {"role": "user", "content": query}
         ],
         max_tokens=150,
-        temperature=0.3  # Lower temperature for more consistent outputs
+        temperature=0.3
     )
     
-    processed_query = response.choices[0].message.content.strip()
-    return processed_query
+    # Parse the response into a dictionary
+    import json
+    try:
+        # Get the response content and parse it as JSON
+        processed_query = response.choices[0].message.content.strip()
+        return json.loads(processed_query)
+    except json.JSONDecodeError:
+        # If parsing fails, return a basic structured query
+        return {
+            "keywords": query,
+            "title": "",
+            "location": "",
+            "industry": "",
+            "company": ""
+        }
 
 def build_linkedin_url(query_params):
     """

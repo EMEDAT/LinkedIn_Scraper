@@ -3,7 +3,7 @@ from flask_cors import CORS
 from scraper.linkedin_scraper import scrape_linkedin_profiles, scrape_comments_from_post
 from ai.query_processor import process_query
 from database.firebase_client import save_to_firebase
-from scraper.utils import export_to_csv, ensure_gdpr_compliance  # Fixed import path
+from scraper.utils import export_to_csv, ensure_gdpr_compliance
 import logging
 
 app = Flask(__name__)
@@ -24,17 +24,26 @@ def search_profiles():
     """
     try:
         data = request.json
+        logger.info(f"Received search request with data: {data}")
+
         query = data.get('query')
         filters = data.get('filters', {})
+        cookies = data.get('cookies')
         
         if not query:
             return jsonify({'error': 'Query is required'}), 400
+        if not cookies:
+            return jsonify({'error': 'LinkedIn cookies are required'}), 400
         
-        # AI Processing
-        processed_query = process_query(query)
+        # AI Processing - now returns a dictionary
+        logger.info(f"Processing query: {query}")
+        query_params = process_query(query)
+        logger.info(f"Processed query params: {query_params}")
         
         # LinkedIn Scraping
-        profiles = scrape_linkedin_profiles(processed_query, filters)
+        logger.info("Starting LinkedIn scraping")
+        profiles = scrape_linkedin_profiles(query_params, cookies, filters)
+        logger.info(f"Found {len(profiles)} profiles")
         
         # Apply GDPR compliance
         compliant_profiles = [ensure_gdpr_compliance(profile) for profile in profiles]
@@ -46,7 +55,11 @@ def search_profiles():
         if data.get('export_csv'):
             export_to_csv(compliant_profiles, 'linkedin_profiles.csv')
         
-        return jsonify({'profiles': compliant_profiles})
+        return jsonify({
+            'status': 'success',
+            'profile_count': len(compliant_profiles),
+            'profiles': compliant_profiles
+        })
         
     except Exception as e:
         logger.error(f"Error in search_profiles: {str(e)}")
@@ -68,8 +81,13 @@ def scrape_comments():
         # Call the scraper function
         comments = scrape_comments_from_post(url, cookies)
         
-        return jsonify({'comments': comments})
+        return jsonify({
+            'status': 'success',
+            'comment_count': len(comments),
+            'comments': comments
+        })
     except Exception as e:
+        logger.error(f"Error in scrape_comments: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
