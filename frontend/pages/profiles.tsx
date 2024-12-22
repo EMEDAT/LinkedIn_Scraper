@@ -34,7 +34,8 @@ export default function Profiles() {
           onChange={(e) => setCookies(e.target.value)}
         />
       </div>
-      <button onClick={fetchProfiles}>Search Profiles</button>
+      <button className={styles.button} onClick={fetchProfiles}>Search Profiles</button>
+
 
       {result && (
         <div style={{ marginTop: '2rem' }}>

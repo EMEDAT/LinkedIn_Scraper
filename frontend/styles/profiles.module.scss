@@ -1,11 +1,31 @@
 .container {
-    padding: 2rem;
-  
-    .inputGroup {
-      margin-bottom: 1rem;
-  
-      input {
-        margin-right: 0.5rem;
-      }
-    }
-  }  
+  padding: 2rem;
+}
+
+.inputGroup {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  input {
+    flex: 1; // Stretch input fields to fit the available space
+    min-width: 200px; // Minimum width for small screens
+  }
+}
+
+.button {
+  margin-top: 1rem;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .inputGroup {
+    flex-direction: column; // Stack inputs vertically on smaller screens
+  }
+
+  .button {
+    width: 100%; // Full-width button for mobile
+  }
+}

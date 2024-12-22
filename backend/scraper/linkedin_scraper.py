@@ -1,203 +1,155 @@
+import os
 import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import logging
 import time
-from typing import Dict, List, Optional
-from datetime import datetime
 import random
-from functools import wraps
+from typing import Dict, List, Optional
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def rate_limit_decorator(min_delay: float = 1.0, max_delay: float = 3.0):
-    """Decorator to implement rate limiting between requests"""
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            time.sleep(random.uniform(min_delay, max_delay))
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
+app = Flask(__name__)
+CORS(app)
+
+# Helper Functions
+def init_selenium_driver() -> webdriver.Chrome:
+    """
+    Initialize Selenium WebDriver with options and WebDriver Manager.
+    """
+    chrome_options = Options()
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--start-maximized")
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
+def login_with_cookie(driver, cookie):
+    """
+    Log in to LinkedIn using cookies.
+    """
+    driver.get("https://www.linkedin.com/")
+    driver.add_cookie({"name": "li_at", "value": cookie})
+    driver.refresh()
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "global-nav__primary-link"))
+    )
 
 def build_linkedin_url(query_params: Dict) -> str:
     """
-    Convert processed query parameters into a LinkedIn search URL.
+    Build LinkedIn search URL from query parameters.
     """
     base_url = "https://www.linkedin.com/search/results/people/?"
-    params = []
-    
-    # Add debugging
-    logger.info(f"Building URL with params: {query_params}")
-    
-    if query_params.get("keywords"):
-        params.append(f"keywords={requests.utils.quote(query_params['keywords'])}")
-    if query_params.get("title"):
-        params.append(f"title={requests.utils.quote(query_params['title'])}")
-    if query_params.get("location"):
-        params.append(f"location={requests.utils.quote(query_params['location'])}")
-    if query_params.get("industry"):
-        params.append(f"industry={requests.utils.quote(query_params['industry'])}")
-    if query_params.get("company"):
-        params.append(f"company={requests.utils.quote(query_params['company'])}")
-    
-    final_url = base_url + "&".join(params)
-    logger.info(f"Generated URL: {final_url}")
-    return final_url
+    params = [f"{key}={requests.utils.quote(value)}" for key, value in query_params.items() if value]
+    return base_url + "&".join(params)
 
-
-@rate_limit_decorator()
-def scrape_linkedin_profiles(query_params: Dict, cookies: str = None, filters: Optional[Dict] = None) -> List[Dict]:
+def scrape_linkedin_profiles(query_params: Dict, cookie: str) -> List[Dict]:
     """
-    Scrape LinkedIn profiles based on structured query parameters.
+    Scrape LinkedIn profiles using Selenium.
     """
-    search_url = build_linkedin_url(query_params)
-    logger.info(f"Attempting to scrape URL: {search_url}")
-    
-    # Enhanced headers to better mimic a real browser
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-        'Referer': 'https://www.linkedin.com/',
-    }
-    
-    if cookies:
-        # Parse the cookies string and set them properly
-        headers['Cookie'] = cookies
-        logger.info("Cookies added to headers")
-    else:
-        logger.warning("No cookies provided")
-
+    driver = init_selenium_driver()
     try:
-        session = requests.Session()
-        response = session.get(search_url, headers=headers)
-        logger.info(f"Response status code: {response.status_code}")
-        logger.info(f"Response URL: {response.url}")  # Add this line to see if we're being redirected
+        login_with_cookie(driver, cookie)
+        search_url = build_linkedin_url(query_params)
+        driver.get(search_url)
         
-        # Save the HTML response for debugging (temporary)
-        with open('linkedin_response.html', 'w', encoding='utf-8') as f:
-            f.write(response.text)
-        
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        logger.info(f"Response content length: {len(response.text)}")
-        
-        # Debug HTML content
-        if "challenge-form" in response.text:
-            logger.error("LinkedIn is showing a challenge form - we need to handle captcha")
-        if "sign-in" in response.text:
-            logger.error("LinkedIn is redirecting to sign-in page")
-            
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CLASS_NAME, "reusable-search__result-container"))
+        )
+
         profiles = []
-        results = soup.select('.reusable-search__result-container')
-        logger.info(f"Found {len(results)} profile containers")
-        
-        for profile in results:
+        results = driver.find_elements(By.CLASS_NAME, "reusable-search__result-container")
+        for result in results:
             try:
-                name_elem = profile.select_one('.app-aware-link span[aria-hidden="true"]')
-                if name_elem:
-                    logger.info(f"Found profile: {name_elem.text.strip()}")
-                    profile_data = {
-                        'name': name_elem.text.strip(),
-                        'title': profile.select_one('.entity-result__primary-subtitle').text.strip() if profile.select_one('.entity-result__primary-subtitle') else '',
-                        'location': profile.select_one('.entity-result__secondary-subtitle').text.strip() if profile.select_one('.entity-result__secondary-subtitle') else '',
-                        'url': f"https://linkedin.com{profile.select_one('.app-aware-link')['href']}" if profile.select_one('.app-aware-link') else '',
-                        'collection_date': datetime.now().isoformat(),
-                        'data_source': 'LinkedIn Public Profile'
-                    }
-                    profiles.append(profile_data)
-            except AttributeError as e:
-                logger.warning(f"Failed to parse profile: {str(e)}")
-                continue
-        
-        if filters:
-            profiles = apply_filters(profiles, filters)
-            
-        return remove_duplicates(profiles)
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to fetch LinkedIn profiles: {str(e)}")
-        raise
+                profiles.append({
+                    "name": result.find_element(By.CSS_SELECTOR, ".actor-name").text,
+                    "title": result.find_element(By.CSS_SELECTOR, ".subline-level-1").text,
+                    "location": result.find_element(By.CSS_SELECTOR, ".subline-level-2").text,
+                    "profile_url": result.find_element(By.CSS_SELECTOR, ".app-aware-link").get_attribute("href")
+                })
+            except Exception as e:
+                logger.warning(f"Error parsing profile: {e}")
 
-@rate_limit_decorator()
-def scrape_comments_from_post(url: str, cookies: str) -> List[Dict]:
+        return profiles
+    finally:
+        driver.quit()
+
+def scrape_comments_from_post(post_url: str, cookie: str) -> List[Dict]:
     """
-    Scrape comments from a LinkedIn post with improved error handling.
+    Scrape comments from a LinkedIn post.
     """
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.linkedin.com/',
-        'Cookie': cookies
-    }
-    
+    driver = init_selenium_driver()
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        comments = []
+        login_with_cookie(driver, cookie)
+        driver.get(post_url)
 
-        # Updated selectors for comments
-        for comment in soup.select('.comments-post-meta__name-text'):
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "comments-comment-item"))
+        )
+
+        comments = []
+        results = driver.find_elements(By.CLASS_NAME, "comments-comment-item")
+        for comment in results:
             try:
-                comment_data = {
-                    'name': comment.text.strip(),
-                    'comment': comment.find_next('.comments-comment-item__main-content').text.strip(),
-                    'timestamp': comment.find_next('.comments-comment-item__timestamp').text.strip(),
-                    'collection_date': datetime.now().isoformat(),
-                    'data_source': 'LinkedIn Comment'
-                }
-                comments.append(comment_data)
-            except AttributeError as e:
-                logger.warning(f"Failed to parse comment: {str(e)}")
-                continue
+                comments.append({
+                    "name": comment.find_element(By.CLASS_NAME, "comments-post-meta__name-text").text,
+                    "comment": comment.find_element(By.CLASS_NAME, "comments-comment-item__main-content").text,
+                    "timestamp": comment.find_element(By.CLASS_NAME, "comments-comment-item__timestamp").text,
+                })
+            except Exception as e:
+                logger.warning(f"Error parsing comment: {e}")
 
         return comments
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to fetch LinkedIn comments: {str(e)}")
-        raise
+    finally:
+        driver.quit()
 
-def apply_filters(profiles: List[Dict], filters: Dict) -> List[Dict]:
-    """Apply filters to the scraped profiles"""
-    filtered_profiles = []
-    for profile in profiles:
-        matches_all_filters = True
-        for key, value in filters.items():
-            profile_value = profile.get(key, '').lower()
-            filter_value = str(value).lower()
-            
-            if not (filter_value in profile_value):
-                matches_all_filters = False
-                break
-                
-        if matches_all_filters:
-            filtered_profiles.append(profile)
-            
-    return filtered_profiles
+# API Endpoints
+@app.route('/search', methods=['POST'])
+def search_profiles():
+    try:
+        data = request.json
+        query = data.get('query')
+        cookie = data.get('cookie')
 
-def remove_duplicates(profiles: List[Dict]) -> List[Dict]:
-    """Remove duplicate profiles based on URL and name"""
-    seen = set()
-    unique_profiles = []
-    
-    for profile in profiles:
-        profile_key = (profile.get('url', ''), profile.get('name', ''))
-        if profile_key not in seen:
-            seen.add(profile_key)
-            unique_profiles.append(profile)
-    
-    return unique_profiles
+        if not query or not cookie:
+            return jsonify({'error': 'Query and LinkedIn cookie are required'}), 400
+
+        profiles = scrape_linkedin_profiles(query, cookie)
+        return jsonify({
+            'status': 'success',
+            'profile_count': len(profiles),
+            'profiles': profiles
+        })
+    except Exception as e:
+        logger.error(f"Error in /search: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/comments', methods=['POST'])
+def fetch_comments():
+    try:
+        data = request.json
+        post_url = data.get('post_url')
+        cookie = data.get('cookie')
+
+        if not post_url or not cookie:
+            return jsonify({'error': 'Post URL and LinkedIn cookie are required'}), 400
+
+        comments = scrape_comments_from_post(post_url, cookie)
+        return jsonify({
+            'status': 'success',
+            'comment_count': len(comments),
+            'comments': comments
+        })
+    except Exception as e:
+        logger.error(f"Error in /comments: {e}")
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)

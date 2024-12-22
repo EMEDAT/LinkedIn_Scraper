@@ -34,7 +34,8 @@ export default function Comments() {
           onChange={(e) => setCookies(e.target.value)}
         />
       </div>
-      <button onClick={fetchComments}>Scrape Comments</button>
+      <button className={styles.button} onClick={fetchComments}>Scrape Comments</button>
+
 
       {result && (
         <div style={{ marginTop: '2rem' }}>

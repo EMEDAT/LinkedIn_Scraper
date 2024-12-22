@@ -1,0 +1,22 @@
+.footer {
+    background-color: #f4f4f4;
+    color: #333;
+    padding: 1rem 0;
+    text-align: center;
+  
+    .container {
+      max-width: 1200px;
+      margin: auto;
+  
+      p {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+    }
+  
+    @media (max-width: 768px) {
+      p {
+        font-size: 0.8rem; // Reduce font size on smaller screens
+      }
+    }
+  }  

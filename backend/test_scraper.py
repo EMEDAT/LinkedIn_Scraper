@@ -6,7 +6,6 @@ from scraper.linkedin_scraper import (
 )
 from scraper.utils import validate_email, export_to_csv, ensure_gdpr_compliance
 from ai.query_processor import process_query
-from database.firebase_client import save_to_firebase
 import json
 import os
 
@@ -14,6 +13,7 @@ class TestLinkedInScraper(unittest.TestCase):
     def setUp(self):
         # You would need to replace this with valid LinkedIn cookies for testing
         self.test_cookies = "AQEDATY_pmsFJqblAAABk-x2AbwAAAGUEIKFvE0ASe_ERrDVJkhpxhFK3eNfNdsAnuSzPkIhf6ILhhwc-hRQMwn4r8NY4m_UsewGLOVRnj57OppRPHm_gpjApdieQvRsXFKPXbMyF_Ye3hA8HbONi83j"
+
     def test_url_builder(self):
         """Test LinkedIn URL builder"""
         print("\nTesting URL builder...")
@@ -34,24 +34,21 @@ class TestLinkedInScraper(unittest.TestCase):
         result = process_query(test_query)
         print(f"Original query: {test_query}")
         print(f"Processed query: {result}")
-        self.assertTrue(isinstance(result, str))
+        self.assertTrue(isinstance(result, dict))
+        self.assertIn('title', result)
+        self.assertIn('location', result)
 
     def test_email_validation(self):
         """Test email validation"""
         print("\nTesting email validation...")
-        
-        # Test basic format validation (without DNS verification)
         valid_email = "test@example.com"
         invalid_email = "invalid.email@"
         print(f"Testing valid email format: {valid_email}")
         print(f"Testing invalid email format: {invalid_email}")
         
         # Test without DNS verification
-        self.assertTrue(validate_email(valid_email, verify_dns=False), 
-                       "Valid email format should pass without DNS verification")
-        self.assertFalse(validate_email(invalid_email, verify_dns=False), 
-                         "Invalid email format should fail")
-        
+        self.assertTrue(validate_email(valid_email, verify_dns=False))
+        self.assertFalse(validate_email(invalid_email, verify_dns=False))
 
     def test_gdpr_compliance(self):
         """Test GDPR compliance transformer"""
@@ -89,7 +86,7 @@ class TestLinkedInScraper(unittest.TestCase):
             "location": "San Francisco"
         }
         try:
-            profiles = scrape_linkedin_profiles(query_params)
+            profiles = scrape_linkedin_profiles(query_params, self.test_cookies)
             print(f"Scraped {len(profiles)} profiles")
             self.assertTrue(isinstance(profiles, list))
         except Exception as e:
@@ -98,7 +95,7 @@ class TestLinkedInScraper(unittest.TestCase):
     def test_comment_scraping(self):
         """Test LinkedIn comment scraping"""
         print("\nTesting comment scraping...")
-        test_url = "https://www.linkedin.com/posts/dthompsondev_yesterday-someone-asked-for-there-to-be-a-activity-7276041809804345344-QYyP?utm_source=share&utm_medium=member_desktop"
+        test_url = "https://www.linkedin.com/posts/elonnmusk_yesterdays-bill-vs-todays-bill-activity-7275821557321547777-dNMr?utm_source=share&utm_medium=member_desktop"
         try:
             comments = scrape_comments_from_post(test_url, self.test_cookies)
             print(f"Scraped {len(comments)} comments")
@@ -111,5 +108,4 @@ class TestLinkedInScraper(unittest.TestCase):
             print(f"Note: Comment scraping test failed (this might be expected): {str(e)}")
 
 if __name__ == '__main__':
-    print("Starting LinkedIn Scraper Tests...")
     unittest.main(verbosity=2)
