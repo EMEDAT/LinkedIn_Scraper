@@ -2,7 +2,7 @@ import unittest
 from scraper.linkedin_scraper import (
     build_linkedin_url,
     scrape_linkedin_profiles,
-    scrape_comments_from_post
+    scrape_comments_from_post,
 )
 from scraper.utils import validate_email, export_to_csv, ensure_gdpr_compliance
 from ai.query_processor import process_query
@@ -12,7 +12,7 @@ import os
 class TestLinkedInScraper(unittest.TestCase):
     def setUp(self):
         # You would need to replace this with valid LinkedIn cookies for testing
-        self.test_cookies = "AQEDATY_pmsFJqblAAABk-x2AbwAAAGUEIKFvE0ASe_ERrDVJkhpxhFK3eNfNdsAnuSzPkIhf6ILhhwc-hRQMwn4r8NY4m_UsewGLOVRnj57OppRPHm_gpjApdieQvRsXFKPXbMyF_Ye3hA8HbONi83j"
+        self.test_cookies = "AQEDATY_pmsAo6ciAAABk--OnCEAAAGUE5sgIU4ACS5CVkUYVrGrAoxfnJ2TA35hOr87kxxCKob2Q81JvskcsbvOz5HI7R--gSRRMuNcO3_RZ_Hq1uO2kZr0oSFIZFQiu_siqoAaG9yONr9s03qKyHJA"
 
     def test_url_builder(self):
         """Test LinkedIn URL builder"""
@@ -78,19 +78,21 @@ class TestLinkedInScraper(unittest.TestCase):
         # Cleanup
         os.remove(test_filename)
 
-    def test_profile_scraping(self):
-        """Test LinkedIn profile scraping"""
-        print("\nTesting profile scraping...")
-        query_params = {
-            "keywords": "software engineer",
-            "location": "San Francisco"
-        }
-        try:
-            profiles = scrape_linkedin_profiles(query_params, self.test_cookies)
-            print(f"Scraped {len(profiles)} profiles")
-            self.assertTrue(isinstance(profiles, list))
-        except Exception as e:
-            print(f"Note: Scraping test failed (this might be expected): {str(e)}")
+def test_profile_scraping(self):
+    print("\nTesting profile scraping...")
+    query_params = {
+        "keywords": "software engineer",
+        "location": "San Francisco"
+    }
+    try:
+        profiles = scrape_linkedin_profiles(query_params, self.test_cookies)
+        print(f"Scraped {len(profiles)} profiles")
+        self.assertTrue(isinstance(profiles, list))
+    except Exception as e:
+        print("Exception occurred during profile scraping test:")
+        print(str(e))  # Log the actual error
+        raise  # Re-raise the exception to see the full traceback
+
 
     def test_comment_scraping(self):
         """Test LinkedIn comment scraping"""

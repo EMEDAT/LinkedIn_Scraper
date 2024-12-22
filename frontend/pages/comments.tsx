@@ -7,13 +7,16 @@ export default function Comments() {
   const [cookies, setCookies] = useState('');
   const [result, setResult] = useState<any>(null);
 
-  const fetchComments = async () => {
-    try {
-      const response = await api.post('/comments', { url, cookies });
-      setResult(response); // Response is already unpacked by the interceptor
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-      setResult({ error: 'Failed to fetch comments' });
+  const fetchComments = async (retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await api.post('/comments', { url, cookies });
+        setResult(response);
+        break;
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+      }
     }
   };
 
@@ -34,7 +37,7 @@ export default function Comments() {
           onChange={(e) => setCookies(e.target.value)}
         />
       </div>
-      <button className={styles.button} onClick={fetchComments}>Scrape Comments</button>
+      <button className={styles.button} onClick={() => fetchComments()}>Scrape Comments</button>
 
 
       {result && (

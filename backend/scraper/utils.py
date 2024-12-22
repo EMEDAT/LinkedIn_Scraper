@@ -21,8 +21,13 @@ def init_selenium_driver() -> webdriver.Chrome:
     chrome_options = Options()
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--start-maximized")
-    chrome_options.add_argument("--disable-webrtc")
-    chrome_options.add_argument("--disable-ipv6")
+    chrome_options.add_argument("--disable-webrtc")  # Disable WebRTC
+    chrome_options.add_argument("--disable-ipv6")    # Disable IPv6
+    chrome_options.add_argument("--log-level=3")
+    chrome_options.add_argument("--disable-logging")
+    chrome_options.add_argument("--silent-debugger-extension-api")
+    chrome_options.add_argument("--disable-media-stream")
+
 
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
