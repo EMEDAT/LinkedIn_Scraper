@@ -35,31 +35,38 @@ def login_with_cookie(driver, cookie: str) -> bool:
         logger.error(f"Login failed: {str(e)}")
         return False
 
-def build_linkedin_url(query_params: Dict) -> str:
+def build_linkedin_url(query_params: Dict, filters: Dict = None) -> str:
     """
-    Build LinkedIn search URL from query parameters.
+    Build LinkedIn search URL from query parameters and optional filters.
     """
     base_url = "https://www.linkedin.com/search/results/people/?"
     params = [f"{key}={requests.utils.quote(str(value))}" for key, value in query_params.items() if value]
+    if filters:
+        params += [f"{key}={requests.utils.quote(str(value))}" for key, value in filters.items() if value]
     return base_url + "&".join(params)
 
-def scrape_linkedin_profiles(query_params: Dict, cookie: str) -> List[Dict]:
+
+def scrape_linkedin_profiles(query_params: Dict, cookie: str, filters: Dict = None) -> List[Dict]:
     """
     Scrape LinkedIn profiles using Selenium with improved error handling and rate limiting.
+    Now supports an optional 'filers' argument.
     """
+    # Incorporate 'filters' into the scraping logic if needed
     driver = init_selenium_driver()
     profiles = []
     page = 1
     max_pages = 3  # Adjust based on your needs
-    
     try:
         if not login_with_cookie(driver, cookie):
             return profiles
 
         while page <= max_pages:
             try:
-                # Add page parameter to URL
+                # Add page parameter to URL and apply filters if provided
                 current_url = build_linkedin_url(query_params)
+                if filters:
+                    filter_params = "&".join(f"{key}={value}" for key, value in filters.items())
+                    current_url += f"&{filter_params}"
                 if page > 1:
                     current_url += f"&page={page}"
                 
@@ -76,7 +83,6 @@ def scrape_linkedin_profiles(query_params: Dict, cookie: str) -> List[Dict]:
                     break
 
                 results = driver.find_elements(By.CLASS_NAME, "reusable-search__result-container")
-                
                 if not results:
                     break
 
