@@ -4,7 +4,7 @@ from scraper.linkedin_scraper import (
     scrape_linkedin_profiles,
     scrape_comments_from_post,
 )
-from scraper.utils import validate_email, export_to_csv, ensure_gdpr_compliance
+from backend.scraper.utils import validate_email, export_to_csv, ensure_gdpr_compliance
 from ai.query_processor import process_query
 import json
 import os

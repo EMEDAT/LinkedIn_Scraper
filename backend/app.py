@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from scraper.linkedin_scraper import scrape_linkedin_profiles, scrape_comments_from_post
+from scraper.linkedin_profile_scraper import scrape_linkedin_profiles
+from scraper.linkedin_comment_scraper import scrape_comments_from_post
 from ai.query_processor import process_query
-from database.firebase_client import save_to_firebase
+from database.firebase_client import save_to_firebase  # Replace with your database implementation
 from scraper.utils import export_to_csv, ensure_gdpr_compliance
 import logging
 from werkzeug.serving import WSGIRequestHandler
@@ -12,15 +13,17 @@ import time
 # Increase the timeout for the WSGI server
 WSGIRequestHandler.timeout = 300  # 5 minutes timeout
 
+# Initialize the Flask app
 app = Flask(__name__)
 CORS(app)
 
-# Setup logging with more detailed format
+# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
 
 def handle_timeout(timeout_seconds):
     """Decorator to handle timeouts for routes"""
@@ -142,6 +145,7 @@ def search_profiles():
             'message': 'An error occurred while processing your request'
         }), 500
 
+
 @app.route('/comments', methods=['POST'])
 @handle_timeout(180)  # 3 minutes timeout
 def scrape_comments():
@@ -197,7 +201,7 @@ def scrape_comments():
             'message': 'An error occurred while scraping comments'
         }), 500
 
-# Error handlers
+
 @app.errorhandler(404)
 def not_found_error(error):
     return jsonify({
@@ -215,4 +219,4 @@ def internal_error(error):
     }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True, processes=1)
+    app.run(debug=True)

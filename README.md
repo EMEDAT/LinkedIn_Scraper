@@ -1,111 +1,133 @@
-LinkedIn Scraper
-A Flask-based LinkedIn scraper to extract publicly available profile, company, and comment data. Uses BeautifulSoup for scraping and Firebase for data storage.
 
-Table of Contents
-Features
-Installation
-Setup
-Usage
-Profile Scraping
-Company Scraping
-Comment Scraping
-Exporting Data
-API Documentation
-Endpoints
-Compliance
-Features
-Scrape LinkedIn profiles: Name, title, location, and more.
-Scrape company details: Specialties, size, and more.
-Extract comments from LinkedIn posts using post URLs and cookies.
-Store data in Firebase or export as CSV.
-Validate email addresses and apply GDPR compliance measures.
-Installation
-Clone the repository and install the required dependencies:
+# LinkedIn Scraper
 
-bash
-Copy code
-git clone https://github.com/your-repo/LinkedIn_Scraper.git
-cd LinkedIn_Scraper/backend
-pip install -r requirements.txt
-Setup
-Create a .env file and add the following variables:
-plaintext
-Copy code
-OPENAI_API_KEY=your_openai_api_key
-FIREBASE_CREDENTIALS_PATH=path_to_firebase_key.json
-Configure your Firebase project and download the firebase_key.json.
-Usage
-Profile Scraping
-To scrape a LinkedIn profile:
+A web application that automates the extraction of publicly available LinkedIn data, including profiles and post comments, using AI-powered search queries.
 
-python
-Copy code
-import requests
+---
 
-url = "http://localhost:5000/search"
-payload = {
-    "query": "Find software engineers in San Francisco",
-    "filters": {"location": "San Francisco"}
-}
-response = requests.post(url, json=payload)
-print(response.json())
-Company Scraping
-To fetch company details:
+## Installation
 
-python
-Copy code
-payload = {"query": "Find tech companies in California"}
-response = requests.post(url, json=payload)
-Comment Scraping
-To scrape comments:
+### Backend Setup
+1. Add your Firebase service account key as `firebase_key.json`.
+2. Start the Flask server:
+   ```bash
+   python wsgi.py
+   ```
 
-python
-Copy code
-payload = {
-    "url": "https://www.linkedin.com/posts/example-post-url",
-    "cookies": "your_linkedin_cookies"
-}
-response = requests.post("http://localhost:5000/comments", json=payload)
-Exporting Data
-Save results to a CSV file:
+### Frontend Setup
+1. Navigate to the `frontend` folder.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+   The app will be available at [http://localhost:3000](http://localhost:3000).
 
-python
-Copy code
-payload = {"export_csv": True}
-response = requests.post(url, json=payload)
-API Documentation
-Endpoints
-POST /search
-Process a query and fetch LinkedIn profiles.
+---
 
-Request:
+## Obtaining LinkedIn Cookies
 
-json
-Copy code
-{
-    "query": "Find marketing directors in New York",
-    "filters": {"industry": "Technology"}
-}
-Response:
+To use the scraper, you need your LinkedIn cookies (specifically the `li_at` cookie). Follow these steps to get them:
 
-json
-Copy code
-{
-    "profiles": [
-        {
-            "name": "Jane Doe",
-            "title": "Marketing Director",
-            "company": "TechCorp",
-            "location": "New York",
-            "url": "https://www.linkedin.com/in/jane-doe"
-        }
-    ]
-}
-POST /comments
-Scrape comments from a LinkedIn post.
+1. Download the **EditThisCookies** Extension fom your Chrome Web Store
+2. Open your browser and log in to your LinkedIn account.
+4. On the Right top corner, beefore your download icon is your extension icon.
+5. Select **EditThisCookies** from the list.
+6. Look for the cookie named `li_at`. Copy its value.
+7. Paste this value into the application where requested.
 
-Compliance
-This scraper adheres to GDPR and CCPA guidelines:
+---
 
-Data is stored securely with limited retention periods.
-Email addresses are hashed for privacy.
+## Usage
+
+### Scraping Profiles
+1. Go to the `Profiles` page.
+2. Enter a query (e.g., `Marketing managers in California`) and your LinkedIn cookies.
+3. Click "Search Profiles" to retrieve results.
+
+### Scraping Comments
+1. Go to the `Comments` page.
+2. Enter a LinkedIn post URL and your cookies.
+3. Click "Scrape Comments" to retrieve comments from the post.
+
+---
+
+## API Endpoints
+
+### `/search` (POST)
+- **Description**: Fetch LinkedIn profiles based on user queries.
+- **Payload**:
+   ```json
+   {
+     "query": "Marketing managers in California",
+     "cookies": "YOUR_LINKEDIN_COOKIE",
+     "filters": {
+       "location": "California",
+       "industry": "Marketing"
+     },
+     "export_csv": true
+   }
+   ```
+
+### `/comments` (POST)
+- **Description**: Scrape comments from a LinkedIn post.
+- **Payload**:
+   ```json
+   {
+     "url": "https://www.linkedin.com/posts/example_post",
+     "cookies": "YOUR_LINKEDIN_COOKIE"
+   }
+   ```
+
+---
+
+## Folder Structure
+
+```lua
+LinkedIn_Scraper
+├── backend
+│   ├── app.py
+│   ├── scraper/
+│   │   ├── linkedin_comment_scraper.py
+│   │   ├── linkedin_profiles_scraper.py
+│   │   ├── utils.py
+│   ├── ai/
+│   │   ├── query_processor.py
+│   ├── database/
+│   │   ├── firebase_client.py
+│   ├── wsgi.py
+│   ├── requirements.txt
+│   └── firebase_key.json
+├── frontend
+│   ├── components/
+│   │   ├── Footer.tsx
+│   │   ├── Header.tsx
+│   ├── pages/
+│   │   ├── index.tsx
+│   │   ├── profiles.tsx
+│   │   ├── comments.tsx
+│   ├── styles/
+│   │   ├── globals.scss
+│   ├── package.json
+│   └── next.config.ts
+```
+
+---
+
+## Notes on Compliance
+This project scrapes publicly available data and does not bypass LinkedIn's authentication or violate terms of service. Ensure ethical usage and follow GDPR/CCPA guidelines.
+
+---
+
+## Future Improvements
+- Add OAuth for secure authentication.
+- Enhance UI with better pagination and progress tracking.
+- Implement advanced AI-powered query handling.
+
+---
+
+## License
+This project is licensed under [MIT License](LICENSE).

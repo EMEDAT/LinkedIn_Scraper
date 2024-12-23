@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create an Axios instance
 const api = axios.create({
   baseURL: process.env.BACKEND_URL || 'http://localhost:5000', // Default to localhost if env is not set
-  timeout: 50000, // Set timeout for requests
+  timeout: 120000, // Set timeout for 2 minutes requests
   headers: {
     'Content-Type': 'application/json',
   },
