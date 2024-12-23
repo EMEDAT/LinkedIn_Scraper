@@ -147,7 +147,7 @@ def search_profiles():
 
 
 @app.route('/comments', methods=['POST'])
-@handle_timeout(180)  # 3 minutes timeout
+@handle_timeout(420)  # 7 minutes timeout
 def scrape_comments():
     """
     Endpoint to scrape LinkedIn comments with improved error handling.
