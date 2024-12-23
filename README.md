@@ -9,10 +9,16 @@ A web application that automates the extraction of publicly available LinkedIn d
 
 ### Backend Setup
 1. Add your Firebase service account key as `firebase_key.json`.
-2. Start the Flask server:
+2. Navigate to the `backend` folder
+3. Install the requirements:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Start the Flask server:
    ```bash
    python wsgi.py
    ```
+   The server will be available at [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
 
 ### Frontend Setup
 1. Navigate to the `frontend` folder.
@@ -34,10 +40,10 @@ To use the scraper, you need your LinkedIn cookies (specifically the `li_at` coo
 
 1. Download the **EditThisCookies** Extension fom your Chrome Web Store
 2. Open your browser and log in to your LinkedIn account.
-4. On the Right top corner, beefore your download icon is your extension icon.
-5. Select **EditThisCookies** from the list.
-6. Look for the cookie named `li_at`. Copy its value.
-7. Paste this value into the application where requested.
+3. On the Right top corner, beefore your download icon is your extension icon.
+4. Select **EditThisCookies** from the list.
+5. Look for the cookie named `li_at`. Copy its value.
+6. Paste this value into the application where requested.
 
 ---
 
